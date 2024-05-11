@@ -278,7 +278,7 @@ export function View({ connid, objectForCompletion }: Props) {
       event.returnValue = "";
     }, { signal: abort.signal });
     window.addEventListener("unload", () => {
-      navigator.sendBeacon(`./close`);
+      navigator.sendBeacon(`/conn/${connid}/close`);
     }, { signal: abort.signal });
     return () => abort.abort();
   }, []);

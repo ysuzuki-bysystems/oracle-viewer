@@ -32,6 +32,9 @@ const ref = new GlobalRef<State>("8d24c974-8d75-499b-b5d8-e028af97a034", () => (
 
 export async function allocate(): Promise<ConnectionId> {
   const { connections } = ref.value;
+  if (connections.size >= 2) {
+    throw new Error("Too many connections opened.");
+  }
 
   const id = crypto.randomUUID() as unknown as ConnectionId;
 
@@ -42,6 +45,11 @@ export async function allocate(): Promise<ConnectionId> {
   });
   connections.set(id, conn);
   return id;
+}
+
+export function list(): ConnectionId[] {
+  const { connections } = ref.value;
+  return Array.from(connections.keys());
 }
 
 export async function ping(id: ConnectionId): Promise<boolean> {
