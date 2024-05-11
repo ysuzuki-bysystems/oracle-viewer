@@ -1,6 +1,7 @@
 import "disposablestack/auto";
 
-import oracledb from "oracledb";
+import { getConnection } from "oracledb";
+import type { Connection } from "oracledb";
 
 import { env } from "@/env";
 
@@ -24,7 +25,7 @@ class GlobalRef<T> {
 }
 
 type State = {
-  connections: Map<ConnectionId, oracledb.Connection>;
+  connections: Map<ConnectionId, Connection>;
 }
 
 const ref = new GlobalRef<State>("8d24c974-8d75-499b-b5d8-e028af97a034", () => ({ connections: new Map() }));
@@ -34,7 +35,7 @@ export async function allocate(): Promise<ConnectionId> {
 
   const id = crypto.randomUUID() as unknown as ConnectionId;
 
-  const conn = await oracledb.getConnection({
+  const conn = await getConnection({
     connectString: env.ORACLE_CONNECTION_STRING,
     user: env.ORACLE_USERNAME,
     password: env.ORACLE_PASSWORD,

@@ -84,7 +84,7 @@ function Editor({ initialText, onChange, onChangeSelection, onCtrlEnter, sqlOpts
         }),
       ],
     }));
-  }, [_initialText]);
+  }, [_initialText, initialSqlOpts]);
 
   useEffect(() => {
     if (state === null) {
