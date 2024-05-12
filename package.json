@@ -19,8 +19,10 @@
     "disposablestack": "^1.1.4",
     "next": "14.2.3",
     "oracledb": "^6.5.0",
+    "postcss": "^8.4.38",
     "react": "^18",
     "react-dom": "^18",
+    "tailwindcss": "^3.4.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {

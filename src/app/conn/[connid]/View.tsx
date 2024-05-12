@@ -1,7 +1,5 @@
 "use client";
 
-import "./style.css";
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { basicSetup } from "codemirror";
@@ -11,15 +9,9 @@ import { PLSQL, sql } from "@codemirror/lang-sql";
 import type { SQLConfig } from "@codemirror/lang-sql";
 import { vim } from "@replit/codemirror-vim"
 import * as cg from "cheetah-grid";
-import { IBM_Plex_Mono } from "next/font/google";
 
 import type { Result } from "@/db";
 import { execute } from "./actions";
-
-const plex = IBM_Plex_Mono({
-  weight: "400",
-  subsets: ["latin"],
-});
 
 type EditorProps = {
   sqlOpts?: Omit<SQLConfig, "dialect"> | undefined;
@@ -75,11 +67,12 @@ function Editor({ initialText, onChange, onChangeSelection, onCtrlEnter, sqlOpts
           }
         }),
         EditorView.theme({
-          ".cm-content": {
-            ...plex.style,
+          "&": {
+            height: "100%",
+            fontFamily: "var(--font-plex)",
           },
-          ".cm-tooltip.cm-tooltip-autocomplete ul": {
-            ...plex.style,
+          ".cm-content, .cm-scroller, .cm-tooltip.cm-tooltip-autocomplete ul": {
+            fontFamily: "var(--font-plex)",
           },
         }),
       ],
@@ -129,7 +122,7 @@ function Editor({ initialText, onChange, onChangeSelection, onCtrlEnter, sqlOpts
   }, [onCtrlEnter, view]);
 
   return (
-    <div ref={div} autoFocus style={{ height: "100%" }} />
+    <div ref={div} autoFocus className="h-full" />
   );
 }
 
@@ -174,7 +167,7 @@ function ResultDataView({ result: { metadata, rows } }: { result: Required<Resul
     });
   }, [grid, rows]);
 
-  return <div ref={div} style={{ height: "100%" }}></div>;
+  return <div ref={div} className="h-full"></div>;
 }
 
 function useLocalStorage(name: string, defaultValue: string): [string | undefined, (text: string) => void] {
@@ -213,11 +206,11 @@ function TabView({ children }: TabViewProps) {
   }
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ flex: "0", display: "flex", gap: "1em", margin: "0 1em" }}>
+    <section className="flex flex-col h-full">
+      <div className="flex-nome flex gap-4 mx-4">
         {tabs.map(i => i !== index && <a key={i} href="#" onClick={event => { event.preventDefault(); setIndex(i)}}>{i}</a> || <React.Fragment key={i}>{i}</React.Fragment>)}
       </div>
-      <div style={{ flex: "max-content" }}>
+      <div className="flex-1">
         {children[index]}
       </div>
     </section>
@@ -284,17 +277,17 @@ export function View({ connid, objectForCompletion }: Props) {
   }, []);
 
   return (
-    <main className={plex.className}>
-      <nav>
+    <main className="size-full flex flex-col gap-4">
+      <nav className="flex-1 max-h-[50%]">
         {sql && <Editor initialText={sql} onChange={setSql} onChangeSelection={setSelection} onCtrlEnter={() => form.current?.requestSubmit()} sqlOpts={sqlOpts} />}
         <form action={dispatch} ref={form} onSubmit={handleSubmit}>
           <input type="hidden" name="sql" value={selection ?? sql ?? ""} readOnly />
           <input type="hidden" name="connid" value={connid} />
         </form>
       </nav>
-      <div>
+      <div className="flex-1 max-h-[50%]">
         {pending && <>...</> || <>
-          {state.err && <pre>{state.err}</pre>}
+          {state.err && <pre className="font-mono">{state.err}</pre>}
           {typeof state.result?.rowsAffected === "number" && <output>rows affected: {state.result.rowsAffected}</output>}
           {state.result?.data && (
             <TabView>
