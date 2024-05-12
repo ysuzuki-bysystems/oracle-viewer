@@ -5,7 +5,7 @@ import { inspect } from "node:util";
 import { z } from "zod";
 
 import type { ConnectionId, Result } from "@/db";
-import { execution as executeDb } from "@/db";
+import { execute as executeDb } from "@/db";
 
 type ExecuteState = {
   err?: string | undefined;

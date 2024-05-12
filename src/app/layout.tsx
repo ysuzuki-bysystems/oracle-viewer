@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${plex.className}`}>
-      <body className="w-screen h-screen">{children}</body>
+      <body className="w-screen h-screen overflow-hidden">{children}</body>
     </html>
   )
 }

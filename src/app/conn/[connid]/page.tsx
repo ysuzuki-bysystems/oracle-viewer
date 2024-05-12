@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { ping, execution } from "@/db";
+import { ping, execute } from "@/db";
 import type { ConnectionId } from "@/db";
 import { View } from "./View";
+
+export const dynamic = "force-dynamic";
 
 const sql = `DECLARE
   c1 SYS_REFCURSOR;
@@ -29,7 +31,7 @@ export default async function Home({ params: { connid } }: Props) {
   }
 
   const objects: string[] = ["DUAL", "DBMS_SQL.RETURN_RESULT"];
-  const result = await execution(connid, sql);
+  const result = await execute(connid, sql);
   for (const data of result.data) {
     for (const [val] of data.rows) {
       if (typeof val !== "string") {

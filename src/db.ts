@@ -1,7 +1,9 @@
 import "disposablestack/auto";
 
+import { text } from "node:stream/consumers";
+
 import { getConnection } from "oracledb";
-import type { Connection } from "oracledb";
+import type { Connection, Lob } from "oracledb";
 
 import { env } from "@/env";
 
@@ -74,7 +76,7 @@ export type Result = {
   }[];
 }
 
-export async function execution(id: ConnectionId, statements: string): Promise<Result> {
+export async function execute(id: ConnectionId, statements: string): Promise<Result> {
   const { connections } = ref.value;
 
   const conn = connections.get(id);
@@ -124,6 +126,26 @@ export async function execution(id: ConnectionId, statements: string): Promise<R
   }
 
   return result;
+}
+
+export async function getDdl(id: ConnectionId, objectType: string, name: string): Promise<string> {
+  const { connections } = ref.value;
+
+  const conn = connections.get(id);
+  if (typeof conn === "undefined") {
+    throw new Error(`No connection for ${id}`);
+  }
+
+  const sql = `SELECT dbms_metadata.get_ddl(:ty, :name) FROM dual`;
+  const binds = {
+    ty: objectType,
+    name,
+  }
+  for await (const [ddl] of conn.queryStream(sql, binds)) {
+    return (await text(ddl as Lob)).trimStart(); // なぜか `"\n  "` が入っている
+  }
+
+  throw new Error("Not found");
 }
 
 export async function close(id: ConnectionId) {
