@@ -8,7 +8,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { PLSQL, sql } from "@codemirror/lang-sql";
 
-import type { getDdl } from "./page";
+import { getDdl } from "./actions";
 
 type EditorProps = {
   text: string | undefined;
@@ -76,12 +76,11 @@ function Editor({ text }: EditorProps) {
 
 type Props = {
   connid: string;
-  objects: Record<string, string[]>;
-  action: typeof getDdl;
+  objects: Record<string, [string, string][]>;
 }
 
-export function View({ connid, objects, action }: Props) {
-  const [ state, dispatch ] = useFormState(action, {});
+export function View({ connid, objects }: Props) {
+  const [ state, dispatch ] = useFormState(getDdl, {});
 
   const handleClick = useCallback((event: SyntheticEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -102,12 +101,13 @@ export function View({ connid, objects, action }: Props) {
             <details key={ty} className="cursor-pointer">
               <summary>{ty} ({values.length})</summary>
               <ul className="pl-4">
-                {values.map(p => (
+                {values.map(([s, p]) => (
                   <form key={p} action={dispatch}>
                     <input type="hidden" name="connid" value={connid} />
                     <input type="hidden" name="type" value={ty} />
+                    <input type="hidden" name="owner" value={s} />
                     <input type="hidden" name="package" value={p} />
-                    <a href="#" onClick={handleClick}>{p}</a>
+                    <a href="#" onClick={handleClick}>{s}.{p}</a>
                   </form>
                 ))}
               </ul>

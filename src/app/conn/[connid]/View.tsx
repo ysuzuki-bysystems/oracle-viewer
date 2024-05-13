@@ -274,7 +274,7 @@ export function View({ connid, objectForCompletion }: Props) {
       navigator.sendBeacon(`/conn/${connid}/close`);
     }, { signal: abort.signal });
     return () => abort.abort();
-  }, []);
+  }, [connid]);
 
   return (
     <main className="size-full flex flex-col gap-4">

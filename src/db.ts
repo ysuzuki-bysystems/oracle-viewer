@@ -76,7 +76,7 @@ export type Result = {
   }[];
 }
 
-export async function execute(id: ConnectionId, statements: string): Promise<Result> {
+export async function execute(id: ConnectionId, statements: string, opts?: { nolimit?: boolean } | undefined): Promise<Result> {
   const { connections } = ref.value;
 
   const conn = connections.get(id);
@@ -116,7 +116,7 @@ export async function execute(id: ConnectionId, statements: string): Promise<Res
     }
 
     let row: unknown;
-    while (data.rows.length < 1000 && typeof (row = await item.getRow()) !== "undefined") {
+    while ((opts?.nolimit || data.rows.length < 1000) && typeof (row = await item.getRow()) !== "undefined") {
       if (!Array.isArray(row)) {
         throw new Error("Unexpected");
       }
@@ -128,7 +128,7 @@ export async function execute(id: ConnectionId, statements: string): Promise<Res
   return result;
 }
 
-export async function getDdl(id: ConnectionId, objectType: string, name: string): Promise<string> {
+export async function getDdl(id: ConnectionId, objectType: string, owner: string, name: string): Promise<string> {
   const { connections } = ref.value;
 
   const conn = connections.get(id);
@@ -136,9 +136,10 @@ export async function getDdl(id: ConnectionId, objectType: string, name: string)
     throw new Error(`No connection for ${id}`);
   }
 
-  const sql = `SELECT dbms_metadata.get_ddl(:ty, :name) FROM dual`;
+  const sql = `SELECT dbms_metadata.get_ddl(:ty, :name, :owner) FROM dual`;
   const binds = {
     ty: objectType,
+    owner,
     name,
   }
   for await (const [ddl] of conn.queryStream(sql, binds)) {

@@ -1,19 +1,9 @@
-import { redirect } from "next/navigation";
 
-import { list, close } from "@/db";
-import type { ConnectionId } from "@/db";
+import { list } from "@/db";
 
-export async function action(form: FormData) {
-  "use server";
+import { action } from "./actions";
 
-  const id = form.get("id");
-  if (typeof id !== "string") {
-    throw new Error();
-  }
-
-  await close(id as ConnectionId);
-  redirect("/conn");
-}
+export const dynamic = "force-dynamic";
 
 export default function Conn() {
   const connections = list();

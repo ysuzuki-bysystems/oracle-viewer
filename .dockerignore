@@ -1,0 +1,12 @@
+*
+!package.json
+!package-lock.json
+
+!.eslintrc.json
+!next-env.d.ts
+!next.config.mjs
+!postcss.config.mjs
+!public
+!src/
+!tailwind.config.ts
+!tsconfig.json
