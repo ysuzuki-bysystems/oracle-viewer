@@ -20,6 +20,8 @@ export default function Layout({
         <Link href={`/conn/${connid}`}>Query</Link>
         <span>|</span>
         <Link href={`/conn/${connid}/ddl`}>DDL</Link>
+        <span>|</span>
+        <Link href={`/conn/${connid}/def`}>DEF</Link>
       </nav>
       <main className="flex-1 max-h-[100%]">{children}</main>
     </div>

@@ -3,7 +3,7 @@ import "disposablestack/auto";
 import { text } from "node:stream/consumers";
 
 import { getConnection } from "oracledb";
-import type { Connection, Lob } from "oracledb";
+import type { Connection, Lob, BindParameters } from "oracledb";
 
 import { env } from "@/env";
 
@@ -76,7 +76,7 @@ export type Result = {
   }[];
 }
 
-export async function execute(id: ConnectionId, statements: string, opts?: { nolimit?: boolean } | undefined): Promise<Result> {
+export async function execute(id: ConnectionId, statements: string, opts?: { binds?: BindParameters | undefined, nolimit?: boolean | undefined } | undefined): Promise<Result> {
   const { connections } = ref.value;
 
   const conn = connections.get(id);
@@ -84,7 +84,7 @@ export async function execute(id: ConnectionId, statements: string, opts?: { nol
     throw new Error(`No connection for ${id}`);
   }
 
-  const { rowsAffected, resultSet, implicitResults } = await conn.execute(statements, {}, { resultSet: true, maxRows: 1 });
+  const { rowsAffected, resultSet, implicitResults } = await conn.execute(statements, opts?.binds ?? {}, { resultSet: true, maxRows: 1 });
 
   const result: Result = {
     rowsAffected,
