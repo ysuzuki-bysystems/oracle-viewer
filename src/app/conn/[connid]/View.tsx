@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
@@ -9,30 +9,31 @@ import { PLSQL, sql } from "@codemirror/lang-sql";
 import type { SQLConfig } from "@codemirror/lang-sql";
 import { vim } from "@replit/codemirror-vim"
 import * as cg from "cheetah-grid";
+import { z } from "zod";
+import * as idb from "idb-keyval";
 
 import type { Result } from "@/db";
 import { execute } from "./actions";
 
 type EditorProps = {
   sqlOpts?: Omit<SQLConfig, "dialect"> | undefined;
-  initialText?: string | undefined;
+  text?: string | undefined;
   onChange?: ((text: string) => void) | undefined;
   onChangeSelection?: ((text: string | undefined) => void) | undefined;
   onCtrlEnter?: (() => void) | undefined;
 }
 
-function Editor({ initialText, onChange, onChangeSelection, onCtrlEnter, sqlOpts }: EditorProps) {
+function Editor({ text: propText, onChange, onChangeSelection, onCtrlEnter, sqlOpts }: EditorProps) {
   const div = useRef<HTMLDivElement | null>(null);
   const [initialSqlOpts] = useState<EditorProps["sqlOpts"]>(sqlOpts);
-  const [_initialText] = useState<string>(() => initialText ?? "");
   const [state, setState] = useState<EditorState | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
-  const [text, setText] = useState<string>(() => initialText ?? "");
+  const [text, setText] = useState<string>(() => propText ?? "");
   const [selection, setSelection] = useState<string | undefined>();
 
   useEffect(() => {
     setState(EditorState.create({
-      doc: _initialText,
+      doc: "",
       extensions: [
         keymap.of([
           {
@@ -77,7 +78,7 @@ function Editor({ initialText, onChange, onChangeSelection, onCtrlEnter, sqlOpts
         }),
       ],
     }));
-  }, [_initialText, initialSqlOpts]);
+  }, [initialSqlOpts]);
 
   useEffect(() => {
     if (state === null) {
@@ -96,6 +97,20 @@ function Editor({ initialText, onChange, onChangeSelection, onCtrlEnter, sqlOpts
     setView(view);
     return () => view.destroy();
   }, [state]);
+
+  useEffect(() => {
+    if(view === null) {
+      return;
+    }
+
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: propText,
+      },
+    });
+  }, [view, propText]);
 
   useEffect(() => {
     onChange?.(text);
@@ -170,23 +185,6 @@ function ResultDataView({ result: { metadata, rows } }: { result: Required<Resul
   return <div ref={div} className="h-full"></div>;
 }
 
-function useLocalStorage(name: string, defaultValue: string): [string | undefined, (text: string) => void] {
-  const [initialName] = useState(() => name);
-  const [initialDefaultValue] = useState(() => defaultValue);
-
-  const [state, setState] = useState<string | undefined>();
-  useEffect(() => {
-    const result = localStorage.getItem(initialName);
-    setState(result ?? initialDefaultValue);
-  }, [initialName, initialDefaultValue]);
-
-  const setValue = useCallback((text: string) => {
-    localStorage.setItem(initialName, text);
-  }, [initialName]);
-
-  return [state, setValue];
-}
-
 type TabViewProps = {
   children: React.ReactNode[];
 }
@@ -233,36 +231,154 @@ function buildCompletion(objects: string[] | undefined): Omit<SQLConfig, "dialec
   }
 }
 
+const zStorageRecord = z.object({
+  name: z.string(),
+  createdAt: z.number(),
+  data: z.string(),
+});
+
+const zStorage = z.object({
+  records: zStorageRecord.array(),
+});
+
+type UseStorageResult = {
+  items: string[] | undefined;
+  latest: z.infer<typeof zStorageRecord> | null | undefined;
+  add: ((event: z.infer<typeof zStorageRecord>) => void) | undefined;
+  get: ((name: string) => z.infer<typeof zStorageRecord> | undefined) | undefined;
+}
+
+function useStorage(): UseStorageResult {
+  const [state, setState] = useState<z.infer<typeof zStorage> | undefined>();
+  const [items, setItems] = useState<string[] | undefined>();
+  const [latest, setLatest] = useState<z.infer<typeof zStorageRecord> | null | undefined>();
+  const [add, setAdd] = useState<UseStorageResult["add"]>();
+  const [get, setGet] = useState<UseStorageResult["get"]>();
+
+  useEffect(() => {
+    const abort = new AbortController();
+    (async () => {
+      const result = await idb.get("storage");
+      if (abort.signal.aborted) {
+        return;
+      }
+
+      if (typeof result === "undefined") {
+        setState({ records: [] });
+        setLatest(null);
+        return;
+      }
+
+      const parsed = zStorage.safeParse(result);
+      if (!parsed.success) {
+        setState({ records: [] });
+        setLatest(null);
+        return;
+      }
+
+      setState(parsed.data);
+      setLatest(Object.values(parsed).at(-1) ?? null);
+    })();
+    return () => abort.abort();
+  }, []);
+
+  useEffect(() => {
+    if (typeof state === "undefined") {
+      return;
+    }
+
+    setItems(state.records.map(r => r.name));
+  }, [state]);
+
+  useEffect(() => {
+    if (typeof state === "undefined") {
+      setAdd(void 0);
+      return;
+    }
+
+    const abort = new AbortController();
+    setAdd(() => (value: z.infer<typeof zStorageRecord>) => {
+      (async () => {
+        setState(void 0);
+
+        const newData: z.infer<typeof zStorage> = {
+          records: [...state.records, value],
+        }
+        while (newData.records.length > 100) {
+          newData.records.shift();
+        }
+        await idb.set("storage", newData);
+        setState(newData);
+      })();
+    });
+    return () => abort.abort();
+  }, [state]);
+
+  useEffect(() => {
+    if (typeof state === "undefined") {
+      setGet(void 0);
+      return;
+    }
+
+    setGet(() => (name: string) => state.records.find(r => r.name === name));
+  }, [state]);
+
+  return { items, latest, add, get };
+}
+
 type Props = {
   connid: string;
   objectForCompletion?: string[] | undefined;
 }
 
 export function View({ connid, objectForCompletion }: Props) {
+  const {
+    items,
+    latest,
+    add: addStorage,
+    get: getStorage,
+  } = useStorage();
+
   const form = useRef<HTMLFormElement | null>(null);
   const [sql, setSql] = useState<string | undefined>();
   const [selection, setSelection] = useState<string | undefined>();
   const [ state, dispatch ] = useFormState(execute, {});
   const { pending } = useFormStatus();
 
-  const [persistedSql, storeSql] = useLocalStorage("oracle-view-sql", "SELECT 1 FROM DUAL");
   useEffect(() => {
-    if (typeof persistedSql === "undefined") {
+    if (typeof latest === "undefined") {
       return;
     }
 
-    setSql(persistedSql);
-  }, [persistedSql]);
+    setSql(latest?.data ?? "SELECT 1 FROM DUAL");
+  }, [latest]);
 
   const sqlOpts = useMemo(() => buildCompletion(objectForCompletion), [objectForCompletion]);
 
   const handleSubmit = useCallback(() => {
-    if (typeof sql === "undefined") {
+    if (typeof sql === "undefined" || typeof addStorage === "undefined") {
       return;
     }
 
-    storeSql(sql);
-  }, [sql, storeSql]);
+    const now = new Date();
+    addStorage({
+      name: now.toISOString(),
+      createdAt: now.getTime(),
+      data: sql,
+    });
+  }, [sql, addStorage]);
+
+  const handleLoad = useCallback((event: SyntheticEvent<HTMLAnchorElement>) => {
+    if (typeof getStorage === "undefined") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const name = new URL(event.currentTarget.href).hash.slice(1);
+    const result = getStorage(name);
+    setSql(result?.data ?? "");
+  }, [getStorage]);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -278,8 +394,15 @@ export function View({ connid, objectForCompletion }: Props) {
 
   return (
     <main className="size-full flex flex-col gap-4">
-      <nav className="flex-1 max-h-[50%]">
-        {sql && <Editor initialText={sql} onChange={setSql} onChangeSelection={setSelection} onCtrlEnter={() => form.current?.requestSubmit()} sqlOpts={sqlOpts} />}
+      <nav className="flex-1 max-h-[50%] flex">
+        <div className="flex-1">
+          <Editor text={sql} onChange={setSql} onChangeSelection={setSelection} onCtrlEnter={() => form.current?.requestSubmit()} sqlOpts={sqlOpts} />
+        </div>
+        <div className="flex-2 w-1/4">
+          <ul className="mx-4">
+          {items && items.toReversed().map(i => <li key={i}><a href={`#${i}`} onClick={handleLoad}>{i}</a></li>)}
+          </ul>
+        </div>
         <form action={dispatch} ref={form} onSubmit={handleSubmit}>
           <input type="hidden" name="sql" value={selection ?? sql ?? ""} readOnly />
           <input type="hidden" name="connid" value={connid} />

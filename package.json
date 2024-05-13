@@ -18,6 +18,7 @@
     "cheetah-grid": "^1.13.2",
     "codemirror": "^6.0.1",
     "disposablestack": "^1.1.4",
+    "idb-keyval": "^6.2.1",
     "next": "14.2.3",
     "oracledb": "^6.5.0",
     "postcss": "^8.4.38",
