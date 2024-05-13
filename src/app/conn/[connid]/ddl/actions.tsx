@@ -8,6 +8,9 @@ import type { ConnectionId } from "@/db";
 type GetDdlState = {
   ddl?: string | undefined;
   error?: string | undefined;
+  type?: string | undefined;
+  owner?: string | undefined;
+  pkg?: string | undefined;
 }
 
 export async function getDdl(_state: GetDdlState, form: FormData): Promise<GetDdlState> {
@@ -27,6 +30,9 @@ export async function getDdl(_state: GetDdlState, form: FormData): Promise<GetDd
 
     return {
       ddl,
+      type: ty,
+      owner,
+      pkg,
     }
   } catch (e) {
     console.error((e as { suppressed?: unknown })["suppressed"] ?? e);

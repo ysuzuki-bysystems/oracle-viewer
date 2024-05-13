@@ -102,12 +102,14 @@ export function View({ connid, objects }: Props) {
               <summary>{ty} ({values.length})</summary>
               <ul className="pl-4">
                 {values.map(([s, p]) => (
-                  <form key={p} action={dispatch}>
+                  <form key={`${s}.${p}`} action={dispatch}>
                     <input type="hidden" name="connid" value={connid} />
                     <input type="hidden" name="type" value={ty} />
                     <input type="hidden" name="owner" value={s} />
                     <input type="hidden" name="package" value={p} />
-                    <a href="#" onClick={handleClick}>{s}.{p}</a>
+                    {state.type === ty && state.owner === s && state.pkg === p ?
+                    <b>{s}.{p}</b> :
+                    <a href="#" onClick={handleClick}>{s}.{p}</a>}
                   </form>
                 ))}
               </ul>

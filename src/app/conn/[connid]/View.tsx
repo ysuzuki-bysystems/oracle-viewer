@@ -17,13 +17,13 @@ import { execute } from "./actions";
 
 type EditorProps = {
   sqlOpts?: Omit<SQLConfig, "dialect"> | undefined;
-  text?: string | undefined;
+  text2?: string | undefined;
   onChange?: ((text: string) => void) | undefined;
   onChangeSelection?: ((text: string | undefined) => void) | undefined;
   onCtrlEnter?: (() => void) | undefined;
 }
 
-function Editor({ text: propText, onChange, onChangeSelection, onCtrlEnter, sqlOpts }: EditorProps) {
+function Editor({ text2: propText, onChange, onChangeSelection, onCtrlEnter, sqlOpts }: EditorProps) {
   const div = useRef<HTMLDivElement | null>(null);
   const [initialSqlOpts] = useState<EditorProps["sqlOpts"]>(sqlOpts);
   const [state, setState] = useState<EditorState | null>(null);
@@ -99,7 +99,7 @@ function Editor({ text: propText, onChange, onChangeSelection, onCtrlEnter, sqlO
   }, [state]);
 
   useEffect(() => {
-    if(view === null) {
+    if(view === null || typeof propText === "undefined") {
       return;
     }
 
@@ -277,7 +277,7 @@ function useStorage(): UseStorageResult {
       }
 
       setState(parsed.data);
-      setLatest(Object.values(parsed).at(-1) ?? null);
+      setLatest(parsed.data.records.at(-1) ?? null);
     })();
     return () => abort.abort();
   }, []);
@@ -341,6 +341,7 @@ export function View({ connid, objectForCompletion }: Props) {
 
   const form = useRef<HTMLFormElement | null>(null);
   const [sql, setSql] = useState<string | undefined>();
+  const [text2, setText2] = useState<string | undefined>();
   const [selection, setSelection] = useState<string | undefined>();
   const [ state, dispatch ] = useFormState(execute, {});
   const { pending } = useFormStatus();
@@ -350,7 +351,7 @@ export function View({ connid, objectForCompletion }: Props) {
       return;
     }
 
-    setSql(latest?.data ?? "SELECT 1 FROM DUAL");
+    setText2(latest?.data ?? "SELECT 1 FROM DUAL");
   }, [latest]);
 
   const sqlOpts = useMemo(() => buildCompletion(objectForCompletion), [objectForCompletion]);
@@ -377,7 +378,7 @@ export function View({ connid, objectForCompletion }: Props) {
 
     const name = new URL(event.currentTarget.href).hash.slice(1);
     const result = getStorage(name);
-    setSql(result?.data ?? "");
+    setText2(result?.data ?? "");
   }, [getStorage]);
 
   useEffect(() => {
@@ -396,7 +397,7 @@ export function View({ connid, objectForCompletion }: Props) {
     <main className="size-full flex flex-col gap-4">
       <nav className="flex-1 max-h-[50%] flex">
         <div className="flex-1">
-          <Editor text={sql} onChange={setSql} onChangeSelection={setSelection} onCtrlEnter={() => form.current?.requestSubmit()} sqlOpts={sqlOpts} />
+          <Editor text2={text2} onChange={setSql} onChangeSelection={setSelection} onCtrlEnter={() => form.current?.requestSubmit()} sqlOpts={sqlOpts} />
         </div>
         <div className="flex-2 w-1/4">
           <ul className="mx-4">

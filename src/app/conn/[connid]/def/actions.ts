@@ -5,6 +5,8 @@ import { execute } from "@/db";
 
 type GetState = {
   data?: Result["data"][number] | undefined;
+  objectId?: number | undefined;
+  subprogramId?: number | undefined;
 }
 
 async function getProcedure(connid: ConnectionId, form: FormData): Promise<GetState> {
@@ -16,8 +18,8 @@ async function getProcedure(connid: ConnectionId, form: FormData): Promise<GetSt
 
   const sql = `SELECT POSITION, ARGUMENT_NAME, DATA_TYPE, DEFAULTED, IN_OUT, DATA_LENGTH, DATA_PRECISION, DATA_SCALE FROM ALL_ARGUMENTS where OBJECT_ID = :objectid and SUBPROGRAM_ID = :subprogramid order by POSITION`;
   const binds = {
-    objectid,
-    subprogramid,
+    objectid: Number.parseInt(objectid, 10),
+    subprogramid: Number.parseInt(subprogramid, 10),
   }
   const result = await execute(connid, sql, { binds });
   const [data] = result.data;
@@ -27,6 +29,8 @@ async function getProcedure(connid: ConnectionId, form: FormData): Promise<GetSt
 
   return {
     data,
+    objectId: Number.parseInt(objectid, 10),
+    subprogramId: Number.parseInt(subprogramid, 10),
   }
 }
 

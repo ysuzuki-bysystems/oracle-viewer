@@ -58,8 +58,8 @@ export type Procedure = {
   package: string;
   name: string;
   overload?: string | undefined;
-  objectId: string;
-  subprogramId: string;
+  objectId: number;
+  subprogramId: number;
 }
 
 type Props = {
@@ -103,12 +103,14 @@ export function View({ connid, procedures }: Props) {
               <summary>{name} ({values.length})</summary>
               <ul className="pl-4">
                 {values.map((proc) => (
-                  <form key={proc.objectId} action={dispatch}>
+                  <form key={proc.subprogramId} action={dispatch}>
                     <input type="hidden" name="type" value="PROCEDURE" />
                     <input type="hidden" name="connid" value={connid} />
                     <input type="hidden" name="object_id" value={proc.objectId} />
                     <input type="hidden" name="subprogram_id" value={proc.subprogramId} />
-                    <a href="#" onClick={handleClick}>{proc.name}{proc.overload && <> (${proc.overload})</>}</a>
+                    {proc.objectId === state.objectId && proc.subprogramId === state.subprogramId ?
+                    <b>{proc.name}{proc.overload && <> (${proc.overload})</>}</b> :
+                    <a href="#" onClick={handleClick}>{proc.name}{proc.overload && <> (${proc.overload})</>}</a>}
                   </form>
                 ))}
               </ul>

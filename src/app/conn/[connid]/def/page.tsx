@@ -22,7 +22,8 @@ const procQuery = `select p.OWNER
   join ALL_OBJECTS o
     on p.OBJECT_ID = o.OBJECT_ID
    and o.ORACLE_MAINTAINED = 'N'
-where p.PROCEDURE_NAME is not null`;
+ where p.PROCEDURE_NAME is not null
+ order by p.OWNER, p.OBJECT_NAME, p.PROCEDURE_NAME`;
 
 function assertsString(val: unknown): asserts val is string {
   if (typeof val !== "string") {
@@ -30,7 +31,7 @@ function assertsString(val: unknown): asserts val is string {
   }
 }
 
-function assertsNumber(val: unknown): asserts val is string {
+function assertsNumber(val: unknown): asserts val is number {
   if (typeof val !== "number") {
     throw new Error(`${val}`);
   }
