@@ -299,6 +299,11 @@ function useStorage(): UseStorageResult {
       (async () => {
         setState(void 0);
 
+        if (state.records.some(r => r.data === value.data)) {
+          setState(state);
+          return;
+        }
+
         const newData: z.infer<typeof zStorage> = {
           records: [...state.records, value],
         }
