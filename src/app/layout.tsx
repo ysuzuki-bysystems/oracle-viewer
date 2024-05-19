@@ -20,6 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${plex.className}`}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className="w-screen h-screen overflow-hidden">{children}</body>
     </html>
   )

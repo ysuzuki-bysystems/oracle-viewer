@@ -17,11 +17,24 @@ export default function Layout({
       event.preventDefault();
       event.returnValue = "";
     }, { signal: abort.signal });
+    /*
     window.addEventListener("unload", () => {
       navigator.sendBeacon(`/conn/${connid}/close`);
     }, { signal: abort.signal });
+    */
     return () => abort.abort();
   }, [connid]);
+
+  useEffect(() => {
+    const abort = new AbortController();
+    window.addEventListener("keydown", event => {
+      if (event.ctrlKey && (event.code === "KeyH" || event.code === "KeyN")) {
+        event.preventDefault();
+        return;
+      }
+    }, { signal: abort.signal });
+    return () => abort.abort();
+  }, []);
 
   return (
     <div className="size-full flex flex-col">

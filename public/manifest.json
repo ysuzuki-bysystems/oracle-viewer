@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "Oracle Viewer",
+  "short_name": "Oracle Viewer",
+  "start_url": "/",
+  "display": "minimal-ui",
+  "display_override": [
+    "minimal-ui",
+    "standalone",
+    "window-controls-overlay"
+  ],
+  "id": "app"
+}
