@@ -2,9 +2,11 @@
 
 import React, { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, drawSelection, lineNumbers, highlightActiveLineGutter, highlightSpecialChars } from "@codemirror/view";
+import { history } from "@codemirror/commands";
+import { defaultHighlightStyle, syntaxHighlighting, bracketMatching } from "@codemirror/language";
+import { autocompletion, completionKeymap } from "@codemirror/autocomplete"
 import { PLSQL, sql } from "@codemirror/lang-sql";
 import type { SQLConfig } from "@codemirror/lang-sql";
 import { vim } from "@replit/codemirror-vim"
@@ -36,6 +38,7 @@ function Editor({ text2: propText, onChange, onChangeSelection, onCtrlEnter, sql
       doc: "",
       extensions: [
         keymap.of([
+          ...completionKeymap,
           {
             key: "Ctrl-Enter",
             run(view) {
@@ -45,7 +48,17 @@ function Editor({ text2: propText, onChange, onChangeSelection, onCtrlEnter, sql
           },
         ]),
         vim(),
-        basicSetup,
+        // basicSetup
+        // https://github.com/codemirror/basic-setup/blob/b3be7cd30496ee578005bd11b1fa6a8b21fcbece/src/codemirror.ts#L50
+        lineNumbers(),
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        history(),
+        drawSelection(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        bracketMatching(),
+        autocompletion(),
+
         sql({ dialect: PLSQL, ...initialSqlOpts }),
         EditorView.updateListener.of(update => {
           if (!update.docChanged) {
