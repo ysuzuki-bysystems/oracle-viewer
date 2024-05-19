@@ -162,25 +162,29 @@ function ResultDataView({ result: { metadata, rows } }: { result: Required<Resul
       return;
     }
 
+    const defaultWidthEm = 8;
+
     grid.header = metadata.map((v, i) => ({
       caption: v.name,
       field: (data) => data[i],
       sort: true,
+      width: (() => {
+        const v = rows.map(r => r[i]).map(v => {
+          if (typeof v !== "string") {
+            return defaultWidthEm;
+          }
+          return v.length;
+        }).reduce((l, r) => Math.max(l, r), defaultWidthEm);
+        return `${v}em`;
+      })(),
     }));
-    grid.invalidate();
-  }, [grid, metadata]);
-
-  useEffect(() => {
-    if (grid === null) {
-      return;
-    }
-
     grid.dataSource = new cg.data.DataSource({
       get: (i) => rows[i],
       length: rows.length,
       source: rows,
     });
-  }, [grid, rows]);
+    grid.invalidate();
+  }, [grid, metadata, rows]);
 
   return <div ref={div} className="h-full"></div>;
 }
