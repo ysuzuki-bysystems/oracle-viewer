@@ -242,18 +242,16 @@ const zStorage = z.object({
 });
 
 type UseStorageResult = {
-  items: string[] | undefined;
+  items: z.infer<typeof zStorageRecord>[] | undefined;
   latest: z.infer<typeof zStorageRecord> | null | undefined;
   add: ((event: z.infer<typeof zStorageRecord>) => void) | undefined;
-  get: ((name: string) => z.infer<typeof zStorageRecord> | undefined) | undefined;
 }
 
 function useStorage(): UseStorageResult {
   const [state, setState] = useState<z.infer<typeof zStorage> | undefined>();
-  const [items, setItems] = useState<string[] | undefined>();
+  const [items, setItems] = useState<z.infer<typeof zStorageRecord>[] | undefined>();
   const [latest, setLatest] = useState<z.infer<typeof zStorageRecord> | null | undefined>();
   const [add, setAdd] = useState<UseStorageResult["add"]>();
-  const [get, setGet] = useState<UseStorageResult["get"]>();
 
   useEffect(() => {
     const abort = new AbortController();
@@ -287,7 +285,7 @@ function useStorage(): UseStorageResult {
       return;
     }
 
-    setItems(state.records.map(r => r.name));
+    setItems(state.records);
   }, [state]);
 
   useEffect(() => {
@@ -314,16 +312,7 @@ function useStorage(): UseStorageResult {
     return () => abort.abort();
   }, [state]);
 
-  useEffect(() => {
-    if (typeof state === "undefined") {
-      setGet(void 0);
-      return;
-    }
-
-    setGet(() => (name: string) => state.records.find(r => r.name === name));
-  }, [state]);
-
-  return { items, latest, add, get };
+  return { items, latest, add };
 }
 
 type Props = {
@@ -336,7 +325,6 @@ export function View({ connid, objectForCompletion }: Props) {
     items,
     latest,
     add: addStorage,
-    get: getStorage,
   } = useStorage();
 
   const form = useRef<HTMLFormElement | null>(null);
@@ -370,28 +358,11 @@ export function View({ connid, objectForCompletion }: Props) {
   }, [sql, addStorage]);
 
   const handleLoad = useCallback((event: SyntheticEvent<HTMLAnchorElement>) => {
-    if (typeof getStorage === "undefined") {
-      return;
-    }
-
     event.preventDefault();
 
-    const name = new URL(event.currentTarget.href).hash.slice(1);
-    const result = getStorage(name);
-    setText2(result?.data ?? "");
-  }, [getStorage]);
-
-  useEffect(() => {
-    const abort = new AbortController();
-    window.addEventListener("beforeunload", event => {
-      event.preventDefault();
-      event.returnValue = "";
-    }, { signal: abort.signal });
-    window.addEventListener("unload", () => {
-      navigator.sendBeacon(`/conn/${connid}/close`);
-    }, { signal: abort.signal });
-    return () => abort.abort();
-  }, [connid]);
+    const data = event.currentTarget.dataset["data"];
+    setText2(data ?? "");
+  }, []);
 
   return (
     <main className="size-full flex flex-col gap-4">
@@ -399,9 +370,18 @@ export function View({ connid, objectForCompletion }: Props) {
         <div className="flex-1">
           <Editor text2={text2} onChange={setSql} onChangeSelection={setSelection} onCtrlEnter={() => form.current?.requestSubmit()} sqlOpts={sqlOpts} />
         </div>
-        <div className="flex-2 w-1/4">
-          <ul className="mx-4">
-          {items && items.toReversed().map(i => <li key={i}><a href={`#${i}`} onClick={handleLoad}>{i}</a></li>)}
+        <div className="flex-2 w-1/4 overflow-y-auto overflow-x-hidden">
+          <ul className="mx-4 pb-4">
+          {items && items.toReversed().map(r => (
+            <li key={r.name}>
+              <span className="relative group">
+                <a href={`#${r.name}`} onClick={handleLoad} data-data={r.data}>{r.name}</a>
+                <div className="absolute z-10 bg-white hidden group-hover:block transition pointer-events-none outline outline-1 p-2">
+                  <pre>{r.data}</pre>
+                </div>
+              </span>
+            </li>
+          ))}
           </ul>
         </div>
         <form action={dispatch} ref={form} onSubmit={handleSubmit}>

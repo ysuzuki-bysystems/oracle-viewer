@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Layout({
   children
@@ -9,6 +10,18 @@ export default function Layout({
   children: React.ReactNode;
 }) {
   const { connid } = useParams();
+
+  useEffect(() => {
+    const abort = new AbortController();
+    window.addEventListener("beforeunload", event => {
+      event.preventDefault();
+      event.returnValue = "";
+    }, { signal: abort.signal });
+    window.addEventListener("unload", () => {
+      navigator.sendBeacon(`/conn/${connid}/close`);
+    }, { signal: abort.signal });
+    return () => abort.abort();
+  }, [connid]);
 
   return (
     <div className="size-full flex flex-col">
